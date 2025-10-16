@@ -1,0 +1,12 @@
+{
+  "name": "earnmate",
+  "version": "1.0.0",
+  "description": "Telegram Task Bot",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build needed'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  }
+}
