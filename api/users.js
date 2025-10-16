@@ -1,15 +1,14 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// === REPLACE THESE VALUES WITH YOUR ACTUAL CREDENTIALS ===
-const supabaseUrl = 'https://lgqmzfecvmkqtlvbemkj.supabase.co'; // REPLACE THIS
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncW16ZmVjdm1rcXRsdmJlbWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NjUyNDYsImV4cCI6MjA3NjE0MTI0Nn0.Z5-DFBoUsIBBsD8rimKkpAbpkWfr4QyB8JfDJOnhDFc'; // REPLACE THIS
-const ADMIN_PASSWORD = '@Admin226'; // CHOOSE STRONG PASSWORD
-// =========================================================
+// === USE THE SAME CREDENTIALS AS IN admin.js ===
+const supabaseUrl = 'https://lgqmzfecvmkqtlvbemkj.supabase.co'; // SAME AS admin.js
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncW16ZmVjdm1rcXRsdmJlbWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NjUyNDYsImV4cCI6MjA3NjE0MTI0Nn0.Z5-DFBoUsIBBsD8rimKkpAbpkWfr4QyB8JfDJOnhDFc'; // SAME AS admin.js
+const ADMIN_PASSWORD = '@Admin226'; // SAME AS admin.js
+// =================================================
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 exports.handler = async (event, context) => {
-  // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -17,7 +16,6 @@ exports.handler = async (event, context) => {
     'Content-Type': 'application/json'
   };
 
-  // Handle OPTIONS request for CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -34,7 +32,6 @@ exports.handler = async (event, context) => {
 
     switch (action) {
       case 'getUser':
-        // Try to get existing user
         const { data: user, error: userError } = await supabase
           .from('users')
           .select('*')
@@ -42,7 +39,6 @@ exports.handler = async (event, context) => {
           .single();
 
         if (userError && userError.code === 'PGRST116') {
-          // User doesn't exist - create new user
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert([
@@ -60,31 +56,19 @@ exports.handler = async (event, context) => {
             .select()
             .single();
 
-          if (createError) {
-            console.error('Create user error:', createError);
-            throw createError;
-          }
-
+          if (createError) throw createError;
           return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-              status: 'success', 
-              data: newUser,
-              message: 'New user created'
-            })
+            body: JSON.stringify({ status: 'success', data: newUser })
           };
         } else if (userError) {
-          console.error('Get user error:', userError);
           throw userError;
         } else {
           return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-              status: 'success', 
-              data: user 
-            })
+            body: JSON.stringify({ status: 'success', data: user })
           };
         }
 
@@ -101,14 +85,10 @@ exports.handler = async (event, context) => {
           .single();
 
         if (updateError) throw updateError;
-        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            status: 'success', 
-            data: updatedUser 
-          })
+          body: JSON.stringify({ status: 'success', data: updatedUser })
         };
 
       case 'addEarning':
@@ -124,7 +104,6 @@ exports.handler = async (event, context) => {
           ]);
 
         if (earningError) throw earningError;
-        
         return {
           statusCode: 200,
           headers,
@@ -132,7 +111,6 @@ exports.handler = async (event, context) => {
         };
 
       case 'getAllUsers':
-        // Admin only endpoint
         if (admin_key !== ADMIN_PASSWORD) {
           return {
             statusCode: 403,
@@ -147,14 +125,10 @@ exports.handler = async (event, context) => {
           .order('created_at', { ascending: false });
 
         if (allError) throw allError;
-        
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ 
-            status: 'success', 
-            data: allUsers 
-          })
+          body: JSON.stringify({ status: 'success', data: allUsers })
         };
 
       default:
