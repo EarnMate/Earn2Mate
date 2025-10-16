@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // === REPLACE THESE VALUES WITH YOUR ACTUAL CREDENTIALS ===
-const supabaseUrl = 'https://https://lgqmzfecvmkqtlvbemkj.supabase.co.supabase.co'; // REPLACE THIS
+const supabaseUrl = 'https://lgqmzfecvmkqtlvbemkj.supabase.co'; // REPLACE THIS
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxncW16ZmVjdm1rcXRsdmJlbWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NjUyNDYsImV4cCI6MjA3NjE0MTI0Nn0.Z5-DFBoUsIBBsD8rimKkpAbpkWfr4QyB8JfDJOnhDFc'; // REPLACE THIS
 const ADMIN_PASSWORD = '@Admin226'; // CHOOSE STRONG PASSWORD
 // =========================================================
