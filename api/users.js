@@ -1,26 +1,40 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+// === REPLACE THESE VALUES WITH YOUR ACTUAL CREDENTIALS ===
+const supabaseUrl = 'https://YOUR_PROJECT_REF.supabase.co'; // REPLACE THIS
+const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // REPLACE THIS
+const ADMIN_PASSWORD = 'your-secure-admin-password-123'; // CHOOSE STRONG PASSWORD
+// =========================================================
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-module.exports = async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+exports.handler = async (event, context) => {
+  // Set CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Content-Type': 'application/json'
+  };
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  // Handle OPTIONS request for CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
   }
 
-  const { action, user_id, username, first_name, tasks, balance, admin_key } = req.query;
-
   try {
+    const params = event.queryStringParameters || {};
+    const { action, user_id, username, first_name, tasks, balance, admin_key } = params;
+
+    console.log('Action:', action, 'User ID:', user_id);
+
     switch (action) {
       case 'getUser':
+        // Try to get existing user
         const { data: user, error: userError } = await supabase
           .from('users')
           .select('*')
@@ -28,46 +42,74 @@ module.exports = async (req, res) => {
           .single();
 
         if (userError && userError.code === 'PGRST116') {
-          // User doesn't exist, create new user
+          // User doesn't exist - create new user
           const { data: newUser, error: createError } = await supabase
             .from('users')
             .insert([
               {
                 user_id: user_id,
-                username: username,
-                first_name: first_name,
+                username: username || '',
+                first_name: first_name || '',
                 tasks: '[]',
                 balance: 0,
-                status: 'active'
+                total_earned: 0,
+                status: 'active',
+                banned: false
               }
             ])
             .select()
             .single();
 
-          if (createError) throw createError;
-          res.json({ status: 'success', data: newUser });
+          if (createError) {
+            console.error('Create user error:', createError);
+            throw createError;
+          }
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              status: 'success', 
+              data: newUser,
+              message: 'New user created'
+            })
+          };
         } else if (userError) {
+          console.error('Get user error:', userError);
           throw userError;
         } else {
-          res.json({ status: 'success', data: user });
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              status: 'success', 
+              data: user 
+            })
+          };
         }
-        break;
 
       case 'updateUser':
         const { data: updatedUser, error: updateError } = await supabase
           .from('users')
           .update({
             tasks: tasks,
-            balance: balance,
-            updated_at: new Date()
+            balance: parseFloat(balance) || 0,
+            updated_at: new Date().toISOString()
           })
           .eq('user_id', user_id)
           .select()
           .single();
 
         if (updateError) throw updateError;
-        res.json({ status: 'success', data: updatedUser });
-        break;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            status: 'success', 
+            data: updatedUser 
+          })
+        };
 
       case 'addEarning':
         const { data: earning, error: earningError } = await supabase
@@ -75,19 +117,28 @@ module.exports = async (req, res) => {
           .insert([
             {
               user_id: user_id,
-              amount: balance,
-              task_description: 'Task completion'
+              amount: parseFloat(balance) || 0,
+              task_description: 'Task completion',
+              created_at: new Date().toISOString()
             }
           ]);
 
         if (earningError) throw earningError;
-        res.json({ status: 'success' });
-        break;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ status: 'success' })
+        };
 
       case 'getAllUsers':
         // Admin only endpoint
-        if (admin_key !== process.env.ADMIN_KEY) {
-          return res.status(403).json({ error: 'Unauthorized' });
+        if (admin_key !== ADMIN_PASSWORD) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ error: 'Unauthorized' })
+          };
         }
 
         const { data: allUsers, error: allError } = await supabase
@@ -96,14 +147,29 @@ module.exports = async (req, res) => {
           .order('created_at', { ascending: false });
 
         if (allError) throw allError;
-        res.json({ status: 'success', data: allUsers });
-        break;
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            status: 'success', 
+            data: allUsers 
+          })
+        };
 
       default:
-        res.status(400).json({ error: 'Invalid action' });
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid action' })
+        };
     }
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
